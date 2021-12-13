@@ -5,29 +5,21 @@ import requests
 import random
 from discord.ext import commands
 from emoji import emojize
+from discord_slash import SlashCommand, SlashContext
+import json
 
 load_dotenv()
 TOKEN = 'TOKEN'
 
-client = commands.Bot(command_prefix = '?', self_bot=False, case_insensitive=True)
-
-sad_words = ["sad", "depressed", "unhappy", "angry", "miserable", "sedih"]
-starter_encouragements = [
-  "Cheer up!",
-  "Hang in there.",
-  "You are a great person / bot!",
-  "Wawaw!",
-  "Masih ada seribu wawaw!!!",
-  "Ichigo-chan!!!",
-  "Ulah sedih bisi beak",
-  "Ahaaa!!"
-]
+client = commands.Bot(command_prefix = '?', self_bot=False, case_insensitive=True, intents=discord.Intents.default())
+slash = SlashCommand(client, sync_commands=True)
 
 # status untuk reaksi
 react_stat = 'unset'
 
 # global variabel
 counter = 1
+data = []
 
 
 # kumpulan emoji
@@ -72,7 +64,14 @@ def reset_react_stat():
 
 @client.event
 async def on_ready():
-	print(f"Logged in as {client.user}")
+    global data
+    print(f"Logged in as {client.user}")
+    data = []
+    for guild in client.guilds:
+        data.append(guild.id)
+    with open('guild_ids.json', 'w') as file:
+        json.dump(data, file)
+        file.close()
 
 
 
@@ -261,7 +260,7 @@ async def _kbbi(ctx, kosakata):
 	global hasil
 	hasil = len(req["data"])
 	makna = req["data"]
-	
+
 	global current_kbbi_page
 	current_kbbi_page = 1
 
@@ -316,6 +315,11 @@ async def _gif(ctx, *query):
 	req = requests.get(f'https://g.tenor.com/v1/search?key=L0PVL4TV1391&q={query}&limit=50&media_filter=minimal').json()
 	hasil = req["results"][opt]["media"][0]["gif"]["url"]
 	await ctx.send(hasil)
+
+
+@slash.slash(name='cek', guild_ids=data)
+async def _cek(ctx: SlashContext, arg):
+    await ctx.send('Berhasil! => {}'.format(arg))
 
 
 client.run(os.getenv(TOKEN))
